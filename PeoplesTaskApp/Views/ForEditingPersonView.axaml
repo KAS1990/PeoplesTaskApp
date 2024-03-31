@@ -1,0 +1,73 @@
+<local:ForEditingPersonViewBase xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="PeoplesTaskApp.Views.ForEditingPersonView"
+             xmlns:local="clr-namespace:PeoplesTaskApp.Views"
+             xmlns:lang="clr-namespace:PeoplesTaskApp.Langs"
+             xmlns:converters="clr-namespace:PeoplesTaskApp.Converters">
+    <UserControl.Resources>
+        <converters:ErrorResourceKeyConverter x:Key="ErrorResourceKeyConverter" />
+    </UserControl.Resources>
+    
+    <UserControl.Styles>
+        <Style Selector="TextBlock.ParameterName">
+            <Setter Property="Margin" Value="0,3,10,10" />
+        </Style>
+
+        <Style Selector="TextBox.ParameterName">
+            <Setter Property="(Grid.Column)" Value="1" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+
+        <Style Selector="DataValidationErrors">
+            <Setter Property="ErrorTemplate">
+                <DataTemplate>
+                    <ItemsControl x:DataType="DataValidationErrors"
+                                  Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                                  ItemsSource="{Binding Converter={StaticResource ErrorResourceKeyConverter}}">
+                        <ItemsControl.Styles>
+                            <Style Selector="TextBlock">
+                                <Setter Property="TextWrapping" Value="NoWrap" />
+                            </Style>
+                        </ItemsControl.Styles>
+                    </ItemsControl>
+                </DataTemplate>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+    
+    <Grid RowDefinitions="auto, auto, auto, auto, auto" ColumnDefinitions="auto, 500" Margin="10,10,10,10">
+        <TextBlock Grid.Row="0" Classes="ParameterName" Text="{x:Static lang:Resources.ParameterNamePerson}"/>
+        <TextBox Grid.Row="0" Classes="ParameterName" Text="{Binding Name, Mode=TwoWay}" />
+        
+        <TextBlock Grid.Row="1" Classes="ParameterName" Text="{x:Static lang:Resources.ParameterSurnamePerson}"/>
+        <TextBox Grid.Row="1" Classes="ParameterName" Text="{Binding Surname, Mode=TwoWay}" />
+        
+        <TextBlock Grid.Row="2" Classes="ParameterName" Text="{x:Static lang:Resources.ParameterAgePerson}"/>
+        <TextBox x:Name="AgeTextBox"
+                 Grid.Row="2"
+                 Classes="ParameterName"
+                 Text="{Binding Age, Mode=TwoWay}"
+                 TextChanging="AgeTextBox_TextChanging" />
+        
+        <TextBlock Grid.Row="3" Classes="ParameterName" Text="{x:Static lang:Resources.ParameterCityPerson}"/>
+        <TextBox Grid.Row="3" Classes="ParameterName" Text="{Binding City, Mode=TwoWay}" />
+
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0 15 0 0" HorizontalAlignment="Center">
+            <Button Classes="Dialog"
+                    Content="{x:Static lang:Resources.ButtonYes}"
+                    Margin="0 0 8 0"
+                    IsDefault="True"
+                    Command="{Binding Confirm, Mode=OneWay}">
+            </Button>
+            <Button Classes="Dialog"
+                    Content="{x:Static lang:Resources.ButtonNo}"
+                    Margin="0 0 0 0"
+                    IsCancel="True"
+                    Command="{Binding Discard, Mode=OneWay}">
+            </Button>
+        </StackPanel>
+    </Grid>
+</local:ForEditingPersonViewBase>

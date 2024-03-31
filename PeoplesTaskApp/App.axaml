@@ -1,0 +1,18 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PeoplesTaskApp.App"
+             xmlns:dialogHostAvalonia="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Styles>
+        <FluentTheme  />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        <dialogHostAvalonia:DialogHostStyles />
+
+        <Style Selector="Button.Dialog">
+            <Setter Property="Width" Value="100" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+    </Application.Styles>
+</Application>

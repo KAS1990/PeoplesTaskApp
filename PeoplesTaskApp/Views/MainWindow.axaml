@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:vm="using:PeoplesTaskApp.ViewModels"
+        xmlns:lang="clr-namespace:PeoplesTaskApp.Langs"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:dialogHost="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+        xmlns:views="clr-namespace:PeoplesTaskApp.Views"
+        xmlns:dataTemplates="clr-namespace:PeoplesTaskApp.DataTemplates"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="PeoplesTaskApp.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{x:Static lang:Resources.TitleApp}">
+
+    <Window.DataTemplates>
+        <dataTemplates:DialogDataTemplatesSelector>
+            <DataTemplate x:Key="YesNoQuestionDialogTemplate" DataType="dataTemplates:DialogContentInfo">
+                <StackPanel MaxWidth="300">
+                    <TextBlock Text="{Binding Content, Mode=OneWay}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Margin="0 15 0 0" HorizontalAlignment="Right">
+                        <Button Classes="Dialog"
+                                Content="{x:Static lang:Resources.ButtonYes}"
+                                Margin="0 0 8 0"
+                                Command="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=dialogHost:DialogHost}, Path=CloseDialogCommand}"
+                                CommandParameter="Yes">
+                        </Button>
+                        <Button Classes="Dialog"
+                                Content="{x:Static lang:Resources.ButtonNo}"
+                                Margin="0 0 0 0"
+                                Command="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=dialogHost:DialogHost}, Path=CloseDialogCommand}"
+                                CommandParameter="No">
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </DataTemplate>
+
+            <DataTemplate x:Key="ErrorDialogTemplate" DataType="dataTemplates:DialogContentInfo">
+                <StackPanel>
+                    <ScrollViewer MaxWidth="640" MaxHeight="480">
+                        <TextBlock Text="{Binding Content, Mode=OneWay}" TextWrapping="Wrap"/>
+                    </ScrollViewer>
+                    <Button Classes="Dialog"
+                            Content="{x:Static lang:Resources.ButtonOk}"
+                            Margin="0 0 0 0"
+                            HorizontalAlignment="Center"
+                            Command="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=dialogHost:DialogHost}, Path=CloseDialogCommand}">
+                    </Button>
+                </StackPanel>
+            </DataTemplate>
+        </dataTemplates:DialogDataTemplatesSelector>
+    </Window.DataTemplates>
+    
+    <dialogHost:DialogHost Identifier="MainDialogHost"
+                           DialogMargin="20"
+                           dialogHost:DialogHostStyle.CornerRadius="8">
+        <views:MainView />
+    </dialogHost:DialogHost>
+</Window>

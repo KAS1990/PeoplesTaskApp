@@ -1,0 +1,62 @@
+<local:MainViewBase xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:PeoplesTaskApp.Views"
+             xmlns:vm="clr-namespace:PeoplesTaskApp.ViewModels"
+             xmlns:lang="clr-namespace:PeoplesTaskApp.Langs"
+             xmlns:converters="clr-namespace:PeoplesTaskApp.Converters"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="PeoplesTaskApp.Views.MainView"
+             x:DataType="vm:MainViewModel">
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+                to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5,5,5,5">
+            <Button Content="{x:Static lang:Resources.ButtonAddPerson}"
+                    Margin="0,0,10,0"
+                    Command="{Binding PersonsList.AddPerson, Mode=OneTime}"/>
+            <Button Content="{x:Static lang:Resources.ButtonRemovePerson}"
+                    Margin="0,0,20,0"
+                    Command="{Binding PersonsList.RemovePerson, Mode=OneTime}"/>
+            <ProgressBar Width="300" IsIndeterminate="True">
+                <ProgressBar.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                        <Binding Path="PersonsList.IsLoadingData" Mode="OneWay" />
+                        <Binding Path="PersonsList.IsSavingData" Mode="OneWay" />
+                    </MultiBinding>
+                </ProgressBar.IsVisible>
+            </ProgressBar>
+        </StackPanel>
+
+        <DataGrid x:Name="PersonsDataGrid" Margin="5" ItemsSource="{Binding PersonsList.Persons, Mode=OneTime}"
+                  IsReadOnly="True"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="False"
+                  GridLinesVisibility="All"
+                  SelectionMode="Single"
+                  SelectedItem="{Binding PersonsList.SelectedPerson, Mode=TwoWay}"
+                  BorderThickness="1"
+                  BorderBrush="Gray"
+                  DoubleTapped="PersonsDataGrid_DoubleTapped">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{x:Static lang:Resources.ParameterNamePerson}"
+                                    Binding="{Binding Name, Mode=OneWay}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="{x:Static lang:Resources.ParameterSurnamePerson}"
+                                    Binding="{Binding Surname, Mode=OneWay}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="{x:Static lang:Resources.ParameterAgePerson}"
+                                    Binding="{Binding Age, Mode=OneWay}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="{x:Static lang:Resources.ParameterCityPerson}"
+                                    Binding="{Binding City, Mode=OneWay}"
+                                    Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</local:MainViewBase>
