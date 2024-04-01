@@ -43,15 +43,15 @@ namespace PeoplesTaskApp.Services.DataSources
         {
             using (await _fileLocker.UseWaitAsync())
             {
-                _loadingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateStart(0, 100));
+                _savingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateStart(0, 100));
                 try
                 {
                     await File.WriteAllLinesAsync(_fileName, data, cancellation);
-                    _loadingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateSucseed(0, 100));
+                    _savingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateSucseed(0, 100));
                 }
                 catch (Exception ex)
                 {
-                    _loadingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateError(SaveLoadStepType.End, 0, 100, 0, ex));
+                    _savingProgressSource.OnNext(DataSaveLoadProgressItem.GenerateError(SaveLoadStepType.End, 0, 100, 0, ex));
                     throw;
                 }
             }

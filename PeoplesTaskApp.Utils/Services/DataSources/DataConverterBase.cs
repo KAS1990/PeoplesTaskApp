@@ -44,21 +44,21 @@ namespace PeoplesTaskApp.Utils.Services.DataSources
                     switch (item.Step)
                     {
                         case SaveLoadStepType.NotStarted:
-                            _loadingProgressSource.OnNext(item);
+                            _savingProgressSource.OnNext(item);
                             break;
 
                         case SaveLoadStepType.Start:    // Skip
                             if (item.HasError)
-                                _loadingProgressSource.OnNext(item);
+                                _savingProgressSource.OnNext(item);
                             break;
 
                         case SaveLoadStepType.Progress:
                         case SaveLoadStepType.End:
-                            _loadingProgressSource.OnNext(DataSaveLoadProgressItem.ConvertToRange(item, 50, 100));
+                            _savingProgressSource.OnNext(DataSaveLoadProgressItem.ConvertToRange(item, 50, 100));
                             break;
 
                         default:
-                            _loadingProgressSource.OnNext(item);
+                            _savingProgressSource.OnNext(item);
                             break;
                     }
                 })
