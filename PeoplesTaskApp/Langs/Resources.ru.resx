@@ -163,7 +163,8 @@
     <value>Фамилия</value>
   </data>
   <data name="RemovePersonQuestionFormatString" xml:space="preserve">
-    <value>Вы хотите удалить человека "{0} {1}"?</value>
+    <value>Вы хотите удалить людей
+{0}?</value>
   </data>
   <data name="TitleApp" xml:space="preserve">
     <value>Люди</value>

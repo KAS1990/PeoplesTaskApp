@@ -22,7 +22,7 @@
                     Command="{Binding PersonsList.AddPerson, Mode=OneTime}"/>
             <Button Content="{x:Static lang:Resources.ButtonRemovePerson}"
                     Margin="0,0,20,0"
-                    Command="{Binding PersonsList.RemovePerson, Mode=OneTime}"/>
+                    Command="{Binding PersonsList.RemoveSelectedPersons, Mode=OneTime}"/>
             <ProgressBar Width="300" IsIndeterminate="True">
                 <ProgressBar.IsVisible>
                     <MultiBinding Converter="{x:Static BoolConverters.Or}">
@@ -38,11 +38,11 @@
                   CanUserResizeColumns="True"
                   CanUserSortColumns="False"
                   GridLinesVisibility="All"
-                  SelectionMode="Single"
-                  SelectedItem="{Binding PersonsList.SelectedPerson, Mode=TwoWay}"
+                  SelectionMode="Extended"
                   BorderThickness="1"
                   BorderBrush="Gray"
-                  DoubleTapped="PersonsDataGrid_DoubleTapped">
+                  DoubleTapped="PersonsDataGrid_DoubleTapped"
+                  SelectionChanged="PersonsDataGrid_SelectionChanged">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{x:Static lang:Resources.ParameterNamePerson}"
                                     Binding="{Binding Name, Mode=OneWay}"

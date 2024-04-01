@@ -196,7 +196,8 @@ namespace PeoplesTaskApp.Langs {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Do you want to remove person &quot;{0} {1}&quot;?.
+        ///   Looks up a localized string similar to Do you want to remove persons:
+        ///{0}?.
         /// </summary>
         public static string RemovePersonQuestionFormatString {
             get {

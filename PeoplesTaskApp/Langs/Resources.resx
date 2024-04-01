@@ -163,7 +163,8 @@
     <value>Surname</value>
   </data>
   <data name="RemovePersonQuestionFormatString" xml:space="preserve">
-    <value>Do you want to remove person "{0} {1}"?</value>
+    <value>Do you want to remove persons:
+{0}?</value>
   </data>
   <data name="TitleApp" xml:space="preserve">
     <value>People</value>

@@ -40,7 +40,7 @@ namespace PeoplesTaskApp.Models
             });
         }
 
-        public void RemovePerson(Guid personId) => _personsSource.RemoveKey(personId);
+        public void RemovePersons(IEnumerable<Guid> personIds) => _personsSource.RemoveKeys(personIds);
 
         public void UpdatePerson(Person person)
         {

@@ -10,6 +10,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
@@ -28,22 +29,7 @@ namespace PeoplesTaskApp.ViewModels
         /// </summary>
         public ReadOnlyObservableCollection<SelectablePersonViewModel> Persons { get; }
 
-        private SelectablePersonViewModel? _selectedPerson;
-        public SelectablePersonViewModel? SelectedPerson
-        {
-            get => _selectedPerson;
-            set
-            {
-                // Setter должен вызываться из RxApp.MainThreadScheduler, по 2м причинам:
-                // 1 RaiseAndSetIfChanged должен вызываться в потоке интерфейса,
-                //      чтобы событие PropertyChanged также сгенерировалось в нём,
-                //      т.к. все обработчике во View могут обрабатывать события только в одном потоке - в том, где они были созданы
-                // 2 Persons меняется в главном потоке и не является потокобезопасной коллекцией,
-                //      т.е. если изменение коллекции произойдёт в другом потоке во время выполнения метода Contains, то будет Exception
-                if (_selectedPerson != value && (value is null || Persons.Contains(value)))
-                    this.RaiseAndSetIfChanged(ref _selectedPerson, value);
-            }
-        }
+        public IObservableCache<SelectablePersonViewModel, Guid> PersonsDynamicCache { get; }
 
         #endregion
 
@@ -68,8 +54,8 @@ namespace PeoplesTaskApp.ViewModels
         /// <summary>
         /// true - можно удалять. Это нужно, чтобы перед удалением показать сообщение пользователю
         /// </summary>
-        public Interaction<ReadOnlyPersonViewModel, bool> RemovePersonAllowRequests { get; } = new(RxApp.MainThreadScheduler);
-        public ReactiveCommand<Unit, bool> RemovePerson { get; }
+        public Interaction<IReadOnlyList<ReadOnlyPersonViewModel>, bool> RemovePersonsAllowRequests { get; } = new(RxApp.MainThreadScheduler);
+        public ReactiveCommand<Unit, bool> RemoveSelectedPersons { get; }
 
         /// <summary>
         /// true - нужно обновить. Это нужно, чтобы показать диалог изменения данных
@@ -87,15 +73,15 @@ namespace PeoplesTaskApp.ViewModels
 
         public PersonsListViewModel(PersonsList model) : base(model)
         {
-            _model.Persons
-                .Connect()
-                .Transform(person => new SelectablePersonViewModel(person))
-                .SubscribeMany(personVM =>
-                    personVM.WhenAnyValue(vm => vm.IsSelected)
-                        .Where(selected => selected)
-                        .ObserveOn(RxApp.MainThreadScheduler)
-                        .Subscribe(_ => SelectedPerson = personVM))
-                .DisposeMany()
+            PersonsDynamicCache
+                = _model.Persons
+                    .Connect()
+                    .Transform(person => new SelectablePersonViewModel(person))
+                    .DisposeMany()
+                    .AsObservableCache()
+                    .DisposeWith(DisposableOnDestroy);
+
+            PersonsDynamicCache.Connect()
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out var personsROOC)
                 .Subscribe()
@@ -103,29 +89,24 @@ namespace PeoplesTaskApp.ViewModels
 
             Persons = personsROOC;
 
-            this.WhenAnyValue(vm => vm.SelectedPerson)
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(selectedPersonVM =>
-                {
-                    foreach (var personVM in Persons)
-                        personVM.IsSelected = selectedPersonVM == personVM;
-                })
-                .DisposeWith(DisposableOnDestroy);
-
             AddPerson = ReactiveCommand.CreateFromTask(_ => Task.Run(AddPersonImplAsync));
             AddPerson.AddDefaultSubscriptions(DisposableOnDestroy);
 
-            RemovePerson
-                = ReactiveCommand.CreateFromTask(_ => Task.Run(RemovePersonImplAsync),
-                    this.WhenAnyValue(vm => vm.SelectedPerson)
-                        .Select(selectedPersonVM => selectedPersonVM is not null)
+            var onSelectedChangedPersonsCollection
+                = PersonsDynamicCache.Connect()
+                    .AutoRefreshOnObservable(p => p.WhenAnyValue(vm => vm.IsSelected))
+                    .ToCollection()
+                    .Publish();
+
+            RemoveSelectedPersons
+                = ReactiveCommand.CreateFromTask(_ => Task.Run(RemovePersonsImplAsync),
+                    onSelectedChangedPersonsCollection.Select(persons => persons.Any(p => p.IsSelected))
                         .ObserveOn(RxApp.MainThreadScheduler));
-            RemovePerson.AddDefaultSubscriptions(DisposableOnDestroy);
+            RemoveSelectedPersons.AddDefaultSubscriptions(DisposableOnDestroy);
 
             UpdatePerson
                 = ReactiveCommand.CreateFromTask(_ => Task.Run(UpdatePersonImplAsync),
-                    this.WhenAnyValue(vm => vm.SelectedPerson)
-                        .Select(selectedPersonVM => selectedPersonVM is not null)
+                    onSelectedChangedPersonsCollection.Select(persons => persons.Count(p => p.IsSelected) == 1)
                         .ObserveOn(RxApp.MainThreadScheduler));
             UpdatePerson.AddDefaultSubscriptions(DisposableOnDestroy);
 
@@ -140,6 +121,8 @@ namespace PeoplesTaskApp.ViewModels
                 = ReactiveCommand.CreateFromTask(_ => Task.Run(SaveDataImplAsync, _),
                     this.WhenAnyValue(x => x.IsSavingData).Select(processing => !processing));
             SaveData.AddDefaultSubscriptions(DisposableOnDestroy);
+
+            onSelectedChangedPersonsCollection.Connect().DisposeWith(DisposableOnDestroy);
         }
 
         private async Task<bool> AddPersonImplAsync()
@@ -155,17 +138,17 @@ namespace PeoplesTaskApp.ViewModels
             return false;
         }
 
-        private async Task<bool> RemovePersonImplAsync()
+        private async Task<bool> RemovePersonsImplAsync()
         {
-            var selectedPerson = SelectedPerson;
-            if (selectedPerson is null)
+            var selectedPersons = Persons.Where(p => p.IsSelected).ToList();
+            if (selectedPersons.Count == 0)
                 return false;
 
-            // Если подписки на RemovePersonAllowRequests нет, то ошибка автоматически прокинется через ErrorHandlers.UnhandledErrors
-            var allow = await RemovePersonAllowRequests.Handle(selectedPerson);
+            // Если подписки на RemovePersonsAllowRequests нет, то ошибка автоматически прокинется через ErrorHandlers.UnhandledErrors
+            var allow = await RemovePersonsAllowRequests.Handle(selectedPersons);
             if (allow)
             {
-                _model.RemovePerson(selectedPerson.Id);
+                _model.RemovePersons(selectedPersons.Select(p => p.Id));
                 return true;
             }
 
@@ -174,12 +157,16 @@ namespace PeoplesTaskApp.ViewModels
 
         private async Task<bool> UpdatePersonImplAsync()
         {
-            using (var selectedPersonForEdit = SelectedPerson?.Edit())
+            var selectedPerson = Persons.FirstOrDefault(p => p.IsSelected);
+            if (selectedPerson is null)
+                return false;
+
+            using (var selectedPersonForEdit = selectedPerson.Edit())
             {
                 if (selectedPersonForEdit is null)
                     return false;
 
-                // Если подписки на RemovePersonAllowRequests нет, то ошибка автоматически прокинется через ErrorHandlers.UnhandledErrors
+                // Если подписки на RemovePersonsAllowRequests нет, то ошибка автоматически прокинется через ErrorHandlers.UnhandledErrors
                 var allow = await NewPersonDataRequests.Handle(selectedPersonForEdit);
                 if (allow)
                 {
@@ -232,7 +219,7 @@ namespace PeoplesTaskApp.ViewModels
         public async Task SaveDataImplAsync()
         {
             var dataLoaderService = Locator.Current.GetServiceOrThrow<IDataService<Person[]>>(AppConfiguration.DataFileServiceContractName);
-            
+
             var progressSubscription = new SingleAssignmentDisposable();
             progressSubscription.Disposable
                 = dataLoaderService.SavingProgress

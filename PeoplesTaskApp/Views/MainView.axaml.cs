@@ -2,8 +2,8 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using DynamicData;
 using PeoplesTaskApp.DataTemplates;
 using PeoplesTaskApp.Models;
 using PeoplesTaskApp.Services;
@@ -12,8 +12,11 @@ using PeoplesTaskApp.ViewModels;
 using ReactiveUI;
 using Splat;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 
 namespace PeoplesTaskApp.Views;
@@ -29,8 +32,26 @@ public sealed partial class MainView : MainViewBase
     protected override void OnActivated(CompositeDisposable disposable)
     {
         NotNullViewModel.PersonsList.NewPersonRequests.RegisterHandler(NewPersonRequestsHandlerAsync).DisposeWith(disposable);
-        NotNullViewModel.PersonsList.RemovePersonAllowRequests.RegisterHandler(RemovePersonAllowRequestsHandlerAsync).DisposeWith(disposable);
+        NotNullViewModel.PersonsList
+            .RemovePersonsAllowRequests
+            .RegisterHandler(RemovePersonAllowRequestsHandlerAsync)
+            .DisposeWith(disposable);
         NotNullViewModel.PersonsList.NewPersonDataRequests.RegisterHandler(NewPersonDataRequestsHandlerAsync).DisposeWith(disposable);
+
+        NotNullViewModel.PersonsList
+            .PersonsDynamicCache
+            .Connect()
+            .AutoRefreshOnObservable(p => p.WhenAnyValue(vm => vm.IsSelected))
+            .Filter(p => p.IsSelected)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .OnItemAdded(p =>
+            {
+                if (!PersonsDataGrid.SelectedItems.Contains(p))
+                    PersonsDataGrid.SelectedItems.Add(p);
+            })
+            .OnItemRemoved(p => PersonsDataGrid.SelectedItems.Remove(p))
+            .Subscribe()
+            .DisposeWith(disposable);
     }
 
     private async Task NewPersonDataRequestsHandlerAsync(IInteractionContext<ForEditingPersonViewModel, bool> context)
@@ -54,7 +75,7 @@ public sealed partial class MainView : MainViewBase
         }
     }
 
-    private async Task RemovePersonAllowRequestsHandlerAsync(IInteractionContext<ReadOnlyPersonViewModel, bool> context)
+    private async Task RemovePersonAllowRequestsHandlerAsync(IInteractionContext<IReadOnlyList<ReadOnlyPersonViewModel>, bool> context)
     {
         var manager = Locator.Current.GetServiceOrThrow<IDialogHostManager>();
 
@@ -62,8 +83,7 @@ public sealed partial class MainView : MainViewBase
             = await manager.ShowDialogAsync("MainDialogHost",
                     new DialogContentInfo("YesNoQuestionDialogTemplate",
                         string.Format(Langs.Resources.RemovePersonQuestionFormatString,
-                            context.Input.Name,
-                            context.Input.Surname)));
+                            string.Join("\n", context.Input.Select(p => $"{p.Name} {p.Surname}")))));
 
         context.SetOutput(userChoice?.ToString() == "Yes");
     }
@@ -96,12 +116,21 @@ public sealed partial class MainView : MainViewBase
     public void PersonsDataGrid_DoubleTapped(object? sender, TappedEventArgs e)
     {
         var point = e.GetPosition(PersonsDataGrid);
-        var controlUnderCursor = PersonsDataGrid.InputHitTest(point) as Control;
-        if (controlUnderCursor is null)
+        if (PersonsDataGrid.InputHitTest(point) is not Control controlUnderCursor
+            || controlUnderCursor.FindLogicalAncestorOfType<DataGridRow>()?.DataContext is not SelectablePersonViewModel)
+        {
             return;
+        }
 
-        var selectedVM = controlUnderCursor.FindLogicalAncestorOfType<DataGridRow>()?.DataContext as SelectablePersonViewModel;
-        if (selectedVM is not null)
-            ViewModel!.PersonsList.UpdatePerson.Execute().Subscribe();
+        ViewModel!.PersonsList.UpdatePerson.Execute().Subscribe();
+    }
+
+    public void PersonsDataGrid_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        foreach (var itemToSelect in e.AddedItems.OfType<SelectablePersonViewModel>())
+            itemToSelect.IsSelected = true;
+
+        foreach (var itemToUnselect in e.RemovedItems.OfType<SelectablePersonViewModel>())
+            itemToUnselect.IsSelected = false;
     }
 }
